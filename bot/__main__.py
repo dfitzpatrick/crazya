@@ -3,14 +3,39 @@ import os
 from discord.ext import commands
 import asyncio
 import logging
+from dotenv import load_dotenv
+load_dotenv()
+
 
 log = logging.getLogger(__name__)
 
 extensions = (
     'bot.core',
-    'bot.profitability',
-    'bot.sticky_embed',
+    'bot.novelimage'
+
 )
+class MissingConfigurationException(Exception):
+    pass
+
+def assert_envs_exist():
+    envs = (
+        ('TOKEN', 'The Bot Token', str),
+        ('NAI_USERNAME', 'Your login for NovelAPI. This must be lowercase email or exactly how you registered as.', str),
+        ('NAI_PASSWORD', 'Your Novel API Password', str),
+
+
+    )
+
+    for e in envs:
+        ident = f"{e[0]}/{e[1]}"
+        value = os.environ.get(e[0])
+        if value is None:
+            raise MissingConfigurationException(f"{ident} needs to be defined")
+        try:
+            _ = e[2](value)
+        except ValueError:
+            raise MissingConfigurationException(f"{ident} is not the required type of {e[2]}")
+
 
 def bot_task_callback(future: asyncio.Future):
     if future.exception():
@@ -18,6 +43,7 @@ def bot_task_callback(future: asyncio.Future):
 
 
 async def run_bot():
+    assert_envs_exist()
     token = os.environ['TOKEN']
     intents = discord.Intents.all()
     intents.message_content = True
